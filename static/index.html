@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quant Terminal</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-blob blob-1"></div>
+<div class="bg-blob blob-2"></div>
+<div class="bg-blob blob-3"></div>
+<div id="cursor-glow"></div>
+
+<header>
+  <div class="brand">
+    <span class="brand-mark">◆</span>
+    <h1>QUANT&nbsp;TERMINAL</h1>
+  </div>
+  <div class="bot-picker">
+    <span id="status-dot" class="status-dot offline" title="bot status"></span>
+    <select id="bot-select" title="Select bot"></select>
+    <span id="asset-label" class="asset-label"></span>
+  </div>
+</header>
+
+<main>
+  <section class="stats-row">
+    <div class="card stat-card" id="card-total-pnl" tabindex="0">
+      <div class="stat-label">TOTAL PNL</div>
+      <div class="stat-value" id="stat-total-pnl">—</div>
+      <div class="stat-sub">all time</div>
+    </div>
+    <div class="card stat-card" id="card-daily-pnl" tabindex="0">
+      <div class="stat-label">DAILY PNL</div>
+      <div class="stat-value" id="stat-daily-pnl">—</div>
+      <div class="stat-sub">since 00:00 UTC</div>
+    </div>
+    <div class="card stat-card" id="card-trades" tabindex="0">
+      <div class="stat-label">TRADES TODAY</div>
+      <div class="stat-value" id="stat-trades">—</div>
+      <div class="stat-sub">executed</div>
+    </div>
+    <div class="card stat-card" id="card-skips" tabindex="0">
+      <div class="stat-label">SKIPPED TODAY</div>
+      <div class="stat-value" id="stat-skips">—</div>
+      <div class="stat-sub">signals passed on</div>
+    </div>
+  </section>
+
+  <section class="card panel chart-panel">
+    <div class="panel-head">
+      <h2>PRICE <span id="chart-asset"></span></h2>
+      <span class="last-price" id="last-price"></span>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="price-chart"></canvas>
+    </div>
+  </section>
+
+  <section class="card panel trades-panel">
+    <div class="panel-head">
+      <h2>TODAY'S TRADES</h2>
+      <span class="muted" id="trade-count"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>TIME</th><th>SIDE</th><th>PRICE</th><th>SIZE</th><th>PNL</th><th>NOTE</th></tr>
+        </thead>
+        <tbody id="trades-body">
+          <tr><td colspan="6" class="empty">no trades yet today</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span id="footer-status" class="muted">connecting…</span>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

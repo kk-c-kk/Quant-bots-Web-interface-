@@ -1,0 +1,11 @@
+# runtime data — never commit the live database
+reporter.db
+reporter.db-wal
+reporter.db-shm
+*.sqlite3
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env

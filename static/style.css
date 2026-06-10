@@ -1,0 +1,260 @@
+/* ============ Quant Terminal — dark purple theme ============ */
+
+:root {
+  --bg: #0a0612;
+  --panel: rgba(22, 13, 38, 0.72);
+  --panel-solid: #160d26;
+  --border: rgba(168, 85, 247, 0.22);
+  --border-bright: #a855f7;
+  --glow: rgba(168, 85, 247, 0.45);
+  --text: #e6dcf5;
+  --muted: #8d7fab;
+  --green: #34d399;
+  --red: #f87171;
+  --accent: #c084fc;
+  --mono: "JetBrains Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* ---------------- animated background ---------------- */
+
+.bg-grid {
+  position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(168, 85, 247, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(168, 85, 247, 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 30%, transparent 100%);
+}
+
+.bg-blob {
+  position: fixed; z-index: -3; pointer-events: none;
+  width: 55vw; height: 55vw; border-radius: 50%;
+  filter: blur(90px); opacity: 0.35;
+}
+.blob-1 {
+  background: radial-gradient(circle, #4c1d95 0%, transparent 65%);
+  top: -20vw; left: -12vw;
+  animation: drift1 26s ease-in-out infinite alternate;
+}
+.blob-2 {
+  background: radial-gradient(circle, #6d28d9 0%, transparent 65%);
+  bottom: -25vw; right: -15vw;
+  animation: drift2 32s ease-in-out infinite alternate;
+}
+.blob-3 {
+  background: radial-gradient(circle, #2e1065 0%, transparent 60%);
+  top: 30vh; left: 35vw; width: 40vw; height: 40vw;
+  animation: drift3 38s ease-in-out infinite alternate;
+}
+@keyframes drift1 { to { transform: translate(10vw, 8vh) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(-8vw, -10vh) scale(1.1); } }
+@keyframes drift3 { to { transform: translate(-12vw, 6vh) scale(0.9); } }
+
+/* ---------------- cursor effect ---------------- */
+
+#cursor-glow {
+  position: fixed; z-index: 50; pointer-events: none;
+  width: 340px; height: 340px;
+  left: 0; top: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.13) 0%, rgba(168, 85, 247, 0.05) 35%, transparent 70%);
+  transform: translate(-50%, -50%);
+  mix-blend-mode: screen;
+  transition: opacity 0.3s;
+  opacity: 0;
+}
+
+.cursor-trail {
+  position: fixed; z-index: 49; pointer-events: none;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px 2px var(--glow);
+  transform: translate(-50%, -50%);
+  animation: trail-fade 0.7s ease-out forwards;
+}
+@keyframes trail-fade {
+  from { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 0;   transform: translate(-50%, -50%) scale(0.1); }
+}
+
+/* ---------------- layout ---------------- */
+
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+  padding: 22px 32px 10px;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark {
+  color: var(--accent); font-size: 22px;
+  text-shadow: 0 0 14px var(--glow);
+  animation: pulse-mark 3s ease-in-out infinite;
+}
+@keyframes pulse-mark { 50% { text-shadow: 0 0 26px var(--border-bright); } }
+
+h1 {
+  font-size: 19px; letter-spacing: 6px; font-weight: 600;
+  background: linear-gradient(90deg, #e6dcf5, #c084fc, #e6dcf5);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+@keyframes shimmer { to { background-position: 200% center; } }
+
+.bot-picker { display: flex; align-items: center; gap: 10px; }
+
+#bot-select {
+  background: var(--panel-solid); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  font-family: var(--mono); font-size: 13px;
+  padding: 8px 14px; cursor: pointer; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+#bot-select:hover, #bot-select:focus {
+  border-color: var(--border-bright);
+  box-shadow: 0 0 12px var(--glow);
+}
+
+.asset-label { color: var(--muted); font-size: 12px; letter-spacing: 1px; }
+
+.status-dot {
+  width: 9px; height: 9px; border-radius: 50%; display: inline-block;
+}
+.status-dot.online {
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: blink 2s ease-in-out infinite;
+}
+.status-dot.offline { background: #4b4060; }
+@keyframes blink { 50% { opacity: 0.45; } }
+
+main {
+  max-width: 1240px; margin: 0 auto;
+  padding: 14px 32px 40px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+
+/* ---------------- cards / panels ---------------- */
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+.card:hover {
+  border-color: rgba(168, 85, 247, 0.55);
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.18);
+}
+.card.selected {
+  border-color: var(--border-bright);
+  box-shadow: 0 0 22px var(--glow), inset 0 0 18px rgba(168, 85, 247, 0.08);
+  transform: translateY(-2px);
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.stat-card { padding: 20px 22px; cursor: pointer; outline: none; }
+
+.stat-label {
+  font-size: 11px; letter-spacing: 3px; color: var(--muted);
+  margin-bottom: 10px;
+}
+.stat-value {
+  font-size: 30px; font-weight: 700; letter-spacing: 1px;
+  text-shadow: 0 0 18px rgba(168, 85, 247, 0.25);
+}
+.stat-value.pos { color: var(--green); text-shadow: 0 0 18px rgba(52, 211, 153, 0.35); }
+.stat-value.neg { color: var(--red);   text-shadow: 0 0 18px rgba(248, 113, 113, 0.35); }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+.panel { padding: 20px 22px; }
+
+.panel-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.panel-head h2 {
+  font-size: 12px; letter-spacing: 3px; font-weight: 600; color: var(--accent);
+}
+#chart-asset { color: var(--muted); letter-spacing: 1px; }
+
+.last-price { font-size: 16px; font-weight: 700; color: var(--text); }
+
+/* ---------------- chart ---------------- */
+
+.chart-wrap { position: relative; width: 100%; height: 320px; }
+#price-chart { width: 100%; height: 100%; display: block; }
+
+/* ---------------- trades table ---------------- */
+
+.table-wrap { max-height: 380px; overflow-y: auto; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+thead th {
+  text-align: left; font-size: 10px; letter-spacing: 2px;
+  color: var(--muted); font-weight: 600;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0;
+  background: var(--panel-solid);
+}
+
+tbody td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(168, 85, 247, 0.08);
+}
+tbody tr { transition: background 0.15s; }
+tbody tr:hover { background: rgba(168, 85, 247, 0.07); }
+
+td.side-buy  { color: var(--green); font-weight: 700; }
+td.side-sell { color: var(--red);   font-weight: 700; }
+td.pnl-pos   { color: var(--green); }
+td.pnl-neg   { color: var(--red); }
+td.empty     { color: var(--muted); text-align: center; padding: 28px; }
+td.note      { color: var(--muted); font-size: 12px; }
+
+.muted { color: var(--muted); font-size: 12px; }
+
+footer {
+  text-align: center; padding: 10px 0 24px;
+}
+
+/* ---------------- scrollbar ---------------- */
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.3); border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(168, 85, 247, 0.55); }
+
+@media (max-width: 700px) {
+  header { padding: 16px 16px 6px; }
+  main { padding: 10px 16px 30px; }
+  h1 { font-size: 15px; letter-spacing: 4px; }
+  #cursor-glow, .cursor-trail { display: none; }
+  body { cursor: auto; }
+}
