@@ -24,7 +24,6 @@ body {
   color: var(--text);
   font-family: var(--mono);
   overflow-x: hidden;
-  cursor: crosshair;
 }
 
 /* ---------------- animated background ---------------- */
@@ -256,5 +255,4 @@ footer {
   main { padding: 10px 16px 30px; }
   h1 { font-size: 15px; letter-spacing: 4px; }
   #cursor-glow, .cursor-trail { display: none; }
-  body { cursor: auto; }
 }
