@@ -64,6 +64,18 @@ body {
 
 /* ---------------- cursor effect ---------------- */
 
+body, body * { cursor: none; }
+
+#cursor-dot {
+  position: fixed; z-index: 51; pointer-events: none;
+  width: 8px; height: 8px; border-radius: 50%;
+  left: 0; top: 0;
+  background: #e9d5ff;
+  box-shadow: 0 0 10px 3px var(--glow);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
 #cursor-glow {
   position: fixed; z-index: 50; pointer-events: none;
   width: 340px; height: 340px;
@@ -254,5 +266,6 @@ footer {
   header { padding: 16px 16px 6px; }
   main { padding: 10px 16px 30px; }
   h1 { font-size: 15px; letter-spacing: 4px; }
-  #cursor-glow, .cursor-trail { display: none; }
+  #cursor-glow, .cursor-trail, #cursor-dot { display: none; }
+  body, body * { cursor: auto; }
 }

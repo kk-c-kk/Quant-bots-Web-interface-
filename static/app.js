@@ -250,6 +250,7 @@ document.querySelectorAll(".stat-card").forEach((card) => {
 /* ---------------------------------------------------------- cursor FX */
 
 const glow = $("cursor-glow");
+const cursorDot = $("cursor-dot");
 let mouseX = innerWidth / 2, mouseY = innerHeight / 2;
 let glowX = mouseX, glowY = mouseY;
 let lastTrail = 0;
@@ -258,6 +259,9 @@ addEventListener("mousemove", (e) => {
   mouseX = e.clientX;
   mouseY = e.clientY;
   glow.style.opacity = "1";
+  cursorDot.style.left = e.clientX + "px";
+  cursorDot.style.top = e.clientY + "px";
+  cursorDot.style.opacity = "1";
 
   const now = performance.now();
   if (now - lastTrail > 40) {
@@ -271,7 +275,10 @@ addEventListener("mousemove", (e) => {
   }
 });
 
-addEventListener("mouseleave", () => { glow.style.opacity = "0"; });
+addEventListener("mouseleave", () => {
+  glow.style.opacity = "0";
+  cursorDot.style.opacity = "0";
+});
 
 (function animateGlow() {
   glowX += (mouseX - glowX) * 0.12;
