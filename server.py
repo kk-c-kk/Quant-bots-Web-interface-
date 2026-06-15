@@ -14,6 +14,7 @@ Env vars:
 
 import os
 import sqlite3
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,6 +30,7 @@ DB_PATH = Path(os.environ.get("REPORTER_DB", BASE_DIR / "reporter.db"))
 API_KEY = os.environ.get("REPORTER_API_KEY", "")
 PRICE_RETENTION_SECONDS = int(os.environ.get("REPORTER_PRICE_RETENTION", "86400"))
 ONLINE_WINDOW_SECONDS = 20  # bot counts as online if any ingest within this window
+PRUNE_INTERVAL_SECONDS = 300  # prune old prices at most this often per bot (not per tick)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS bots (
@@ -66,10 +68,25 @@ CREATE INDEX IF NOT EXISTS idx_prices_bot_ts ON prices (bot_id, ts);
 """
 
 
+_local = threading.local()
+
+
 def db() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    """One persistent SQLite connection per worker thread.
+
+    FastAPI runs these sync endpoints in a bounded threadpool, so reusing a
+    per-thread connection avoids opening a new handle (and re-running the
+    PRAGMAs) on every request. Pragmas are set once at connection creation:
+    WAL + synchronous=NORMAL skips a per-commit fsync (OS crash loses <=a few
+    seconds of ticks, process crash loses nothing) — see the SQLite playbook.
+    """
+    conn = getattr(_local, "conn", None)
+    if conn is None:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        _local.conn = conn
     return conn
 
 
@@ -165,20 +182,30 @@ def ingest_skip(body: SkipIn, x_api_key: Optional[str] = Header(default=None)):
     return {"ok": True}
 
 
+# bot_id -> last time we pruned its price history. Pruning every tick is a
+# wasted delete-scan; retention is a soft cap so once per PRUNE_INTERVAL is fine.
+_last_prune: dict[str, float] = {}
+
+
 @app.post("/api/ingest/price")
 def ingest_price(body: PriceIn, x_api_key: Optional[str] = Header(default=None)):
     check_key(x_api_key)
-    ts = body.ts or time.time()
+    now = time.time()
+    ts = body.ts or now
     with db() as conn:
         upsert_bot(conn, body.bot_id, body.name, body.asset, ts)
         conn.execute(
             "INSERT INTO prices (bot_id, ts, price) VALUES (?, ?, ?)",
             (body.bot_id, ts, body.price),
         )
-        conn.execute(
-            "DELETE FROM prices WHERE bot_id = ? AND ts < ?",
-            (body.bot_id, ts - PRICE_RETENTION_SECONDS),
-        )
+        # Gate on the server clock, not the (client-supplied) ts, so a skewed
+        # bot timestamp can't suppress pruning indefinitely.
+        if now - _last_prune.get(body.bot_id, 0.0) >= PRUNE_INTERVAL_SECONDS:
+            conn.execute(
+                "DELETE FROM prices WHERE bot_id = ? AND ts < ?",
+                (body.bot_id, now - PRICE_RETENTION_SECONDS),
+            )
+            _last_prune[body.bot_id] = now
     return {"ok": True}
 
 

@@ -1,10 +1,12 @@
 /* Quant Terminal frontend — polls the reporter API and renders one bot. */
 
 const POLL_MS = 3000;
+const BOTS_POLL_MS = 30000; // the bot list changes rarely — refresh it far less often
 const $ = (id) => document.getElementById(id);
 
 let selectedBot = localStorage.getItem("selectedBot") || null;
 let lastDashboard = null;
+let lastBotsLoad = 0;
 
 /* ---------------------------------------------------------- bots picker */
 
@@ -215,10 +217,16 @@ new ResizeObserver(() => {
 
 async function refresh() {
   try {
-    const bot = await loadBots();
-    if (!bot) {
-      $("footer-status").textContent = "no bots reporting yet — run demo_bot.py or wire reporter.py into a bot";
-      return;
+    // The bot-list query is cheap but redundant every 3s; refresh it on its own
+    // slower cadence and reuse the selected bot in between.
+    const now = Date.now();
+    if (now - lastBotsLoad >= BOTS_POLL_MS || !selectedBot) {
+      lastBotsLoad = now;
+      const bot = await loadBots();
+      if (!bot) {
+        $("footer-status").textContent = "no bots reporting yet — run demo_bot.py or wire reporter.py into a bot";
+        return;
+      }
     }
     const res = await fetch(`/api/bots/${encodeURIComponent(selectedBot)}/dashboard?points=900`);
     if (!res.ok) throw new Error(`dashboard -> ${res.status}`);
@@ -235,7 +243,15 @@ async function refresh() {
 }
 
 refresh();
-setInterval(refresh, POLL_MS);
+setInterval(() => {
+  // Don't poll the VPS while the tab is backgrounded — nobody's looking.
+  if (!document.hidden) refresh();
+}, POLL_MS);
+
+// Refresh immediately when the tab becomes visible again so it's never stale.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refresh();
+});
 
 /* ---------------------------------------------------------- card select */
 
