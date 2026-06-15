@@ -1,0 +1,18 @@
+[Unit]
+Description=Quant bot web reporter (unified dashboard)
+After=network.target
+
+[Service]
+User=botuser
+WorkingDirectory=/home/botuser/quant-reporter
+EnvironmentFile=/etc/quant-reporter.env
+Environment=PYTHONUNBUFFERED=1
+# Bind to localhost only: nginx (with TLS + basic auth) is the sole public door,
+# and bots POST to 127.0.0.1:8000 on the same box. The SSH tunnel also reaches
+# 127.0.0.1, so `ssh -L 8000:localhost:8000` keeps working with this binding.
+ExecStart=/home/botuser/quant-reporter/.venv/bin/uvicorn server:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
