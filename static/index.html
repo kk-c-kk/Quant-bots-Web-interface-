@@ -69,12 +69,22 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>TIME</th><th>SIDE</th><th>PRICE</th><th>SIZE</th><th>PNL</th><th>NOTE</th></tr>
+          <tr><th>TIME</th><th>SIDE</th><th>ENTRY</th><th>SIZE</th><th>PNL</th><th>RESULT</th></tr>
         </thead>
         <tbody id="trades-body">
           <tr><td colspan="6" class="empty">no trades yet today</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section class="card panel skips-panel">
+    <div class="panel-head">
+      <h2>WHY SKIPPED <span class="muted">today</span></h2>
+      <span class="muted" id="skip-total"></span>
+    </div>
+    <div id="skips-body" class="skips-list">
+      <div class="empty">no skips yet today</div>
     </div>
   </section>
 </main>

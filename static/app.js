@@ -25,11 +25,20 @@ async function loadBots() {
     sel.appendChild(opt);
     return null;
   }
+  // group into Bots vs Watchers so the dropdown is easier to scan
+  const groups = { Bots: document.createElement("optgroup"),
+                   Watchers: document.createElement("optgroup") };
+  groups.Bots.label = "Bots";
+  groups.Watchers.label = "Watchers";
   for (const b of bots) {
+    const isWatcher = /watch/i.test(b.bot_id) || /watch/i.test(b.name);
     const opt = document.createElement("option");
     opt.value = b.bot_id;
     opt.textContent = `${b.online ? "●" : "○"} ${b.name}`;
-    sel.appendChild(opt);
+    (isWatcher ? groups.Watchers : groups.Bots).appendChild(opt);
+  }
+  for (const label of ["Bots", "Watchers"]) {
+    if (groups[label].children.length) sel.appendChild(groups[label]);
   }
   if (!selectedBot || !bots.some((b) => b.bot_id === selectedBot)) {
     selectedBot = bots[0].bot_id;
@@ -82,25 +91,61 @@ function renderStats(d) {
   $("last-price").textContent = last !== null ? fmtPrice(last) : "";
 }
 
+function sideClass(side) {
+  const s = (side || "").toUpperCase();
+  if (s === "SETTLE") return "";
+  if (["BUY", "UP", "YES", "LONG"].includes(s) || s.startsWith("B")) return "side-buy";
+  if (["SELL", "DOWN", "NO", "SHORT"].includes(s)) return "side-sell";
+  return "";
+}
+
+function resultBadge(t) {
+  const st = t.status || (t.settled ? "even" : "open");
+  const cls = st === "won" ? "won" : st === "lost" ? "lost" : st === "open" ? "open" : "even";
+  const note = t.note ? ` <span class="note">${esc(t.note)}</span>` : "";
+  return `<span class="badge ${cls}">${st.toUpperCase()}</span>${note}`;
+}
+
 function renderTrades(d) {
   const body = $("trades-body");
-  $("trade-count").textContent = d.trades.length ? `${d.trades.length} fills` : "";
+  $("trade-count").textContent = d.trades.length ? `${d.trades.length} trades` : "";
   if (d.trades.length === 0) {
     body.innerHTML = `<tr><td colspan="6" class="empty">no trades yet today</td></tr>`;
     return;
   }
   body.innerHTML = d.trades
     .map((t) => {
-      const sideCls = t.side && t.side.toUpperCase().startsWith("B") ? "side-buy" : "side-sell";
-      const pnlCls = t.pnl > 0 ? "pnl-pos" : t.pnl < 0 ? "pnl-neg" : "";
+      const pnlCls = t.settled ? (t.pnl > 0 ? "pnl-pos" : t.pnl < 0 ? "pnl-neg" : "") : "";
+      const pnl = t.settled ? fmtPnl(t.pnl) : "—";
       return `<tr>
         <td>${fmtTime(t.ts)}</td>
-        <td class="${sideCls}">${esc(t.side || "—")}</td>
+        <td class="${sideClass(t.side)}">${esc(t.side || "—")}</td>
         <td>${fmtPrice(t.price)}</td>
         <td>${t.size ?? "—"}</td>
-        <td class="${pnlCls}">${fmtPnl(t.pnl)}</td>
-        <td class="note">${esc(t.note || "")}</td>
+        <td class="${pnlCls}">${pnl}</td>
+        <td>${resultBadge(t)}</td>
       </tr>`;
+    })
+    .join("");
+}
+
+function renderSkips(d) {
+  const body = $("skips-body");
+  const reasons = d.stats.skip_reasons || [];
+  $("skip-total").textContent = d.stats.skips_today ? `${d.stats.skips_today} total` : "";
+  if (reasons.length === 0) {
+    body.innerHTML = `<div class="empty">no skips yet today</div>`;
+    return;
+  }
+  const max = Math.max(...reasons.map((r) => r.count));
+  body.innerHTML = reasons
+    .map((r) => {
+      const pct = max ? Math.round((r.count / max) * 100) : 0;
+      return `<div class="skip-row">
+        <span class="skip-reason">${esc(r.reason)}</span>
+        <span class="skip-bar"><span class="skip-bar-fill" style="width:${pct}%"></span></span>
+        <span class="skip-count">${r.count}</span>
+      </div>`;
     })
     .join("");
 }
@@ -234,6 +279,7 @@ async function refresh() {
     lastDashboard = d;
     renderStats(d);
     renderTrades(d);
+    renderSkips(d);
     drawChart(d.prices);
     $("footer-status").textContent =
       `last update ${new Date().toLocaleTimeString([], { hour12: false })} · day resets 00:00 UTC`;

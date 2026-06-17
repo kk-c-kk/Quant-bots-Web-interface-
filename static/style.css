@@ -247,6 +247,33 @@ td.pnl-neg   { color: var(--red); }
 td.empty     { color: var(--muted); text-align: center; padding: 28px; }
 td.note      { color: var(--muted); font-size: 12px; }
 
+/* result badges (one row per position: entry + outcome together) */
+.badge {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  padding: 2px 8px; border-radius: 6px; border: 1px solid transparent;
+}
+.badge.won  { color: var(--green); border-color: rgba(52, 211, 153, 0.4);  background: rgba(52, 211, 153, 0.10); }
+.badge.lost { color: var(--red);   border-color: rgba(248, 113, 113, 0.4); background: rgba(248, 113, 113, 0.10); }
+.badge.open { color: var(--accent); border-color: rgba(192, 132, 252, 0.4); background: rgba(192, 132, 252, 0.10); }
+.badge.even { color: var(--muted); border-color: var(--border); }
+
+/* skip-reason breakdown */
+.skips-list { display: flex; flex-direction: column; gap: 9px; }
+.skip-row {
+  display: grid; grid-template-columns: minmax(110px, 1.2fr) 2fr auto;
+  align-items: center; gap: 12px; font-size: 12px;
+}
+.skip-reason { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skip-bar { height: 8px; background: rgba(168, 85, 247, 0.10); border-radius: 4px; overflow: hidden; }
+.skip-bar-fill { display: block; height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, #7c3aed, #c084fc); }
+.skip-count { color: var(--muted); font-weight: 700; min-width: 28px; text-align: right; }
+.skips-list .empty { color: var(--muted); text-align: center; padding: 18px; }
+
+/* grouped bot dropdown */
+#bot-select optgroup { background: var(--panel-solid); color: var(--muted); font-style: normal; font-size: 11px; letter-spacing: 1px; }
+#bot-select option { color: var(--text); font-size: 13px; }
+
 .muted { color: var(--muted); font-size: 12px; }
 
 footer {

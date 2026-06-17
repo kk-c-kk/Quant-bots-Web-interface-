@@ -237,6 +237,56 @@ def list_bots():
     ]
 
 
+def _note_key(note: Optional[str]) -> str:
+    """First token of a trade note — used to pair a settlement to its entry
+    (e.g. "VHHH 32C won" <-> "VHHH 32C entry" both key on "VHHH")."""
+    return (note or "").split(" ", 1)[0]
+
+
+def merge_trades(rows: list) -> list:
+    """Collapse entry + settlement into one row per position.
+
+    `rows` is today's trades newest-first (ts DESC). Entries carry pnl=0; a
+    settlement has side='SETTLE' and the realized pnl. Each settlement is
+    matched to a still-open entry by note key (same market) when possible,
+    else FIFO (oldest open entry). Unmatched settlements (entry was before the
+    bot started reporting) and still-open entries are shown on their own.
+    """
+    open_entries = []   # entries awaiting a settlement, oldest first
+    merged = []
+    for r in reversed(rows):            # walk oldest -> newest for FIFO matching
+        if r["side"] == "SETTLE":
+            entry = None
+            key = _note_key(r["note"])
+            if key:
+                for i, e in enumerate(open_entries):
+                    if _note_key(e["note"]) == key:
+                        entry = open_entries.pop(i)
+                        break
+            if entry is None and open_entries:
+                entry = open_entries.pop(0)
+            pnl = r["pnl"] or 0.0
+            status = "won" if pnl > 0 else "lost" if pnl < 0 else "even"
+            base = entry if entry is not None else r
+            merged.append({
+                "ts": base["ts"], "side": base["side"], "price": base["price"],
+                "size": base["size"] if base["size"] is not None else r["size"],
+                "pnl": r["pnl"], "exit_price": r["price"],
+                "settled": True, "status": status,
+                "note": r["note"] or (entry["note"] if entry else "") or "",
+            })
+        else:
+            open_entries.append(r)
+    for e in open_entries:              # opened today, not settled yet
+        merged.append({
+            "ts": e["ts"], "side": e["side"], "price": e["price"], "size": e["size"],
+            "pnl": e["pnl"], "exit_price": None, "settled": False,
+            "status": "open", "note": e["note"] or "",
+        })
+    merged.sort(key=lambda m: m["ts"], reverse=True)
+    return merged
+
+
 @app.get("/api/bots/{bot_id}/dashboard")
 def bot_dashboard(bot_id: str, points: int = 900, trade_limit: int = 200):
     """Everything the dashboard needs for one bot, in one call."""
@@ -254,15 +304,25 @@ def bot_dashboard(bot_id: str, points: int = 900, trade_limit: int = 200):
             "SELECT COALESCE(SUM(pnl), 0) AS s FROM trades WHERE bot_id = ?",
             (bot_id,),
         ).fetchone()["s"]
-        daily = conn.execute(
-            "SELECT COALESCE(SUM(pnl), 0) AS s, COUNT(*) AS n FROM trades WHERE bot_id = ? AND ts >= ?",
+        daily_pnl = conn.execute(
+            "SELECT COALESCE(SUM(pnl), 0) AS s FROM trades WHERE bot_id = ? AND ts >= ?",
             (bot_id, day_start),
-        ).fetchone()
+        ).fetchone()["s"]
+        # a position = one entry; settlements aren't separate "trades"
+        trades_today_n = conn.execute(
+            "SELECT COUNT(*) AS n FROM trades WHERE bot_id = ? AND ts >= ? AND side != 'SETTLE'",
+            (bot_id, day_start),
+        ).fetchone()["n"]
         skips_today = conn.execute(
             "SELECT COUNT(*) AS n FROM skips WHERE bot_id = ? AND ts >= ?",
             (bot_id, day_start),
         ).fetchone()["n"]
-        trades_today = conn.execute(
+        skip_reasons = conn.execute(
+            "SELECT reason, COUNT(*) AS n FROM skips WHERE bot_id = ? AND ts >= ? "
+            "GROUP BY reason ORDER BY n DESC, reason LIMIT 25",
+            (bot_id, day_start),
+        ).fetchall()
+        trade_rows = conn.execute(
             "SELECT ts, side, price, size, pnl, note FROM trades "
             "WHERE bot_id = ? AND ts >= ? ORDER BY ts DESC LIMIT ?",
             (bot_id, day_start, trade_limit),
@@ -273,6 +333,7 @@ def bot_dashboard(bot_id: str, points: int = 900, trade_limit: int = 200):
         ).fetchall()
 
     price_rows = list(reversed(price_rows))
+    trades = merge_trades([dict(r) for r in trade_rows])
     return {
         "bot": {
             "bot_id": bot["bot_id"],
@@ -283,11 +344,13 @@ def bot_dashboard(bot_id: str, points: int = 900, trade_limit: int = 200):
         },
         "stats": {
             "total_pnl": total_pnl,
-            "daily_pnl": daily["s"],
-            "trades_today": daily["n"],
+            "daily_pnl": daily_pnl,
+            "trades_today": trades_today_n,
             "skips_today": skips_today,
+            "skip_reasons": [{"reason": r["reason"] or "(unspecified)", "count": r["n"]}
+                             for r in skip_reasons],
         },
-        "trades": [dict(r) for r in trades_today],
+        "trades": trades,
         "prices": [{"ts": r["ts"], "price": r["price"]} for r in price_rows],
         "day_start_utc": day_start,
         "server_time": now,
